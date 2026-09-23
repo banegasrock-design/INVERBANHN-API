@@ -83,7 +83,6 @@ namespace InverbanHN.AdminAPI.Controllers
                         userId = userId > 0 ? userId : 1;
                         fullName = string.IsNullOrEmpty(fullName) ? "Armando Banegas (SuperAdmin)" : fullName;
                         email = cleanEmail;
-                        role = "SuperAdmin";
                     }
                 }
 
