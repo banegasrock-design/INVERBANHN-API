@@ -1,0 +1,34 @@
+@INVERBANHN_HostAddress = https://localhost:7208
+@ApiKey = IVB-ADMIN-ARMANDO-7722-BANEGAS-9911
+
+### 🚩 1. PASO OBLIGATORIO: OBTENER TOKEN (O usa API Key abajo)
+# Si recibes 401, primero ejecuta este login:
+POST {{INVERBANHN_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "armando.banegas@inverbanhn.com",
+  "password": "SuperAdmin2026!"
+}
+
+###
+
+@JwtToken = TOKEN_COPIADO_DEL_PASO_ANTERIOR
+
+### 🧪 2. PRUEBA CON API KEY (Acceso Inmediato - No requiere login)
+# Usa esto para saltarte el 401 rápidamente
+GET {{INVERBANHN_HostAddress}}/api/admin/customers/1/snapshot
+X-Api-Key: {{ApiKey}}
+Accept: application/json
+
+### 🧪 3. PRUEBA CON JWT
+GET {{INVERBANHN_HostAddress}}/api/admin/customers/1/snapshot
+Authorization: Bearer {{JwtToken}}
+Accept: application/json
+
+###
+# --- OTROS ENDPOINTS ---
+
+### Listar Categorías (Público - No requiere Auth)
+GET {{INVERBANHN_HostAddress}}/api/products/categories
+Accept: application/json

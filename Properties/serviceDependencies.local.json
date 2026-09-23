@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "identityapp1": {
+      "connectionInfo": "Registro de la aplicación: PEDIDOSSHEIN, Inquilino: INVERSIONES BANEGAS (INVERBANHN.COM - Microsoft Entra ID)",
+      "type": "identityapp.default"
+    },
+    "mssql1": {
+      "serviceConnectorResourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('serviceConnectorResourceGroupName')]/providers/Microsoft.ServiceLinker/locations/southcentralus/connectors/ConnectionStringsDatabaseConnection_70357D4AB1",
+      "secretStore": "LocalSecretsFile",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Sql/servers/inverban/databases/PEDIDOSSHEIN",
+      "type": "mssql.azure",
+      "connectionId": "ConnectionStrings:DatabaseConnection",
+      "dynamicId": null
+    }
+  }
+}

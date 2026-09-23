@@ -1,0 +1,6 @@
+@InverbanHN.CustomerAPI_HostAddress = http://localhost:5242
+
+GET {{InverbanHN.CustomerAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

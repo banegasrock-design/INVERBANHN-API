@@ -1,0 +1,19 @@
+## Visual Studio / .NET
+.vs/
+bin/
+obj/
+*.user
+*.userossc
+*.sln.docstates
+*.suo
+
+## Azure Deploy Packages & Logs
+azure_deploy_packages/
+*.log
+*.tmp
+
+## OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

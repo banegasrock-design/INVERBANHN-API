@@ -1,0 +1,15 @@
+Store_ID
+Owner_User_ID
+Store_Name
+Store_Slug
+Tax_ID_RTN
+Store_Type
+Created_At
+Vendor_ID
+Retention_Days
+Custom_Commission_Percentage
+Inventory_Mode
+Billing_Type
+RTN_Facturacion
+Is_Active
+HasIsrWithholding

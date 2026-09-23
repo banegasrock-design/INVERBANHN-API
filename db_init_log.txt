@@ -1,0 +1,70 @@
+[WARN] SQL execution failed: The INSERT statement conflicted with the FOREIGN KEY constraint "FK_Image_Product". The conflict occurred in database "INVERBANHN", table "Logistics.Products", column 'Product_ID'.
+The statement has been terminated.
+SQL: 
+            DECLARE @StoreId INT = (SELECT TOP 1 Store_ID FROM [Core].[Stores] WHERE Store_Name = 'INVERBANHN');
+            IF @StoreId IS NULL SET @StoreId = 1;
+
+            DECLARE @CatLogistica INT = (SELECT TOP 1 Category_ID FROM [Logistics].[Categories] WHERE Category_Name = 'Logística');
+            DECLARE @CatElectronica INT = (SELECT TOP 1 Category_ID FROM [Logistics].[Categories] WHERE Category_Name = 'Electrónica');
+            DECLARE @CatServicios INT = (SELECT TOP 1 Category_ID FROM [Logistics].[Categories] WHERE Category_Name = 'Servicios Profesionales');
+
+            IF @CatLogistica IS NULL SET @CatLogistica = 1;
+            IF @CatElectronica IS NULL SET @CatElectronica = 1;
+            IF @CatServicios IS NULL SET @CatServicios = 1;
+
+            IF NOT EXISTS (SELECT * FROM [Catalog].[Products] WHERE SKU = 'IVB-BOX-001')
+                INSERT INTO [Catalog].[Products] (Store_ID, SKU, Name, Description, Category_ID, Brand, Weight_Kg, Width_Cm, Height_Cm, Length_Cm, Status_Name, Created_At)
+                VALUES (@StoreId, 'IVB-BOX-001', 'Caja de Cartón Corrugado - Mediana (Pack 25)', 'Cajas de alta resistencia certificadas por CAEX y Cargo Expreso.', @CatLogistica, 'InverbanHN Logistics', 8.5, 40, 30, 30, 'Activo', GETUTCDATE());
+
+            IF NOT EXISTS (SELECT * FROM [Catalog].[Products] WHERE SKU = 'IVB-PRN-002')
+                INSERT INTO [Catalog].[Products] (Store_ID, SKU, Name, Description, Category_ID, Brand, Weight_Kg, Width_Cm, Height_Cm, Length_Cm, Status_Name, Created_At)
+                VALUES (@StoreId, 'IVB-PRN-002', 'Impresora Térmica de Etiquetas Zebra ZD220', 'Impresora industrial de transferencia térmica para guías logísticas de despacho.', @CatElectronica, 'Zebra', 2.1, 22, 17, 28, 'Activo', GETUTCDATE());
+
+            IF NOT EXISTS (SELECT * FROM [Catalog].[Products] WHERE SKU = 'IVB-SRV-003')
+                INSERT INTO [Catalog].[Products] (Store_ID, SKU, Name, Description, Category_ID, Brand, Weight_Kg, Width_Cm, Height_Cm, Length_Cm, Status_Name, Created_At)
+                VALUES (@StoreId, 'IVB-SRV-003', 'Servicio de Embalaje Profesional In-Situ', 'Embalaje a medida de mercancías pesadas y frágiles en las bodegas del cliente.', @CatServicios, 'InverbanHN Express', 0, 0, 0, 0, 'Activo', GETUTCDATE());
+
+            IF NOT EXISTS (SELECT * FROM [Catalog].[Products] WHERE SKU = 'IVB-DIG-004')
+                INSERT INTO [Catalog].[Products] (Store_ID, SKU, Name, Description, Category_ID, Brand, Weight_Kg, Width_Cm, Height_Cm, Length_Cm, Status_Name, Created_At)
+                VALUES (@StoreId, 'IVB-DIG-004', 'Cupo de Envíos CAEX Prepago (10 Guías Nacionales)', 'Paquete digital prepagado para la cotización instantánea de 10 guías de transporte.', @CatLogistica, 'CAEX Honduras', 0, 0, 0, 0, 'Activo', GETUTCDATE());
+
+            IF NOT EXISTS (SELECT * FROM [Catalog].[Products] WHERE SKU = 'IVB-SCL-005')
+                INSERT INTO [Catalog].[Products] (Store_ID, SKU, Name, Description, Category_ID, Brand, Weight_Kg, Width_Cm, Height_Cm, Length_Cm, Status_Name, Created_At)
+                VALUES (@StoreId, 'IVB-SCL-005', 'Báscula Industrial Digital 150Kg', 'Báscula de alta precisión con plataforma de acero para pesaje de paquetería.', @CatElectronica, 'Rhino', 5.2, 40, 10, 50, 'Activo', GETUTCDATE());
+
+            IF NOT EXISTS (SELECT * FROM [Catalog].[Products] WHERE SKU = 'IVB-SRV-006')
+                INSERT INTO [Catalog].[Products] (Store_ID, SKU, Name, Description, Category_ID, Brand, Weight_Kg, Width_Cm, Height_Cm, Length_Cm, Status_Name, Created_At)
+                VALUES (@StoreId, 'IVB-SRV-006', 'Consultoría SAR - Configuración de Autoimpresor', 'Asesoría experta para la obtención de rangos CAI y facturación oficial.', @CatServicios, 'InverbanHN Legal', 0, 0, 0, 0, 'Activo', GETUTCDATE());
+
+            -- Asegurar Precios e Imágenes en SQL Database
+            INSERT INTO [Logistics].[Product_Variants] (Product_ID, SKU, Variant_Name, Variant_Description, Price_Amount, Offer_Type)
+            SELECT p.Product_ID, p.SKU, p.Name, p.Description, 
+                   CASE p.SKU 
+                        WHEN 'IVB-BOX-001' THEN 450.00
+                        WHEN 'IVB-PRN-002' THEN 4800.00
+                        WHEN 'IVB-SRV-003' THEN 1200.00
+                        WHEN 'IVB-DIG-004' THEN 1850.00
+                        WHEN 'IVB-SCL-005' THEN 3500.00
+                        WHEN 'IVB-SRV-006' THEN 2500.00
+                        ELSE 350.00 
+                   END, 
+                   'Sin Oferta'
+            FROM [Catalog].[Products] p
+            WHERE NOT EXISTS (SELECT 1 FROM [Logistics].[Product_Variants] v WHERE v.Product_ID = p.Product_ID);
+
+            INSERT INTO [Logistics].[Product_Images] (Product_ID, Image_URL, Alt_Text, Is_Main, Display_Order)
+            SELECT p.Product_ID,
+                   CASE p.SKU
+                        WHEN 'IVB-BOX-001' THEN 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80'
+                        WHEN 'IVB-PRN-002' THEN 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=800&q=80'
+                        WHEN 'IVB-SRV-003' THEN 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80'
+                        WHEN 'IVB-DIG-004' THEN 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=800&q=80'
+                        WHEN 'IVB-SCL-005' THEN 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80'
+                        WHEN 'IVB-SRV-006' THEN 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80'
+                        ELSE 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80'
+                   END,
+                   p.Name, 1, 1
+            FROM [Catalog].[Products] p
+            WHERE NOT EXISTS (SELECT 1 FROM [Logistics].[Product_Images] img WHERE img.Product_ID = p.Product_ID);
+        
+

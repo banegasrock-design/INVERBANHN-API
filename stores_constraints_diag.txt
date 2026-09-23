@@ -1,0 +1,2 @@
+([Inventory_Mode]='Ecommerce' OR [Inventory_Mode]='Tienda')
+([Billing_Type]='Ecommerce_Managed' OR [Billing_Type]='Autoimpresor')

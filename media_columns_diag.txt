@@ -1,0 +1,4 @@
+Media_ID
+Product_ID
+Image_URL
+Is_Main

@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "apis1": {
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.ApiManagement/service/BIOFARMAapi/apis/BIOFARMA",
+      "type": "apis.azure"
+    },
+    "identityapp1": {
+      "connectionInfo": "Registro de la aplicación: PEDIDOSSHEIN, Inquilino: INVERSIONES BANEGAS (INVERBANHN.COM - Microsoft Entra ID)",
+      "secretStore": "AzureAppSettings",
+      "type": "identityapp.secretStore",
+      "connectionId": "AzureAD:ClientSecret"
+    }
+  }
+}

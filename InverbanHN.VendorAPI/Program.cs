@@ -1,0 +1,164 @@
+using System;
+using System.Linq;
+using System.Text;
+using System.Threading.RateLimiting;
+using InverbanHN.Shared.Authentication;
+using InverbanHN.Shared.Data;
+using InverbanHN.Shared.Middleware;
+using InverbanHN.Shared.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "INVERBANHN_API",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "INVERBANHN_CLIENTS",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "ARMANDO_BANEGAS_SUPER_SECRET_SECURITY_KEY_2026"))
+    };
+})
+.AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("VendorOnly", policy => policy.RequireRole("StoreAdmin", "StoreOwner", "SuperAdmin"));
+});
+
+// Data & Core Infrastructure Services (DI Audit)
+builder.Services.AddSingleton<DapperContext>();
+builder.Services.AddTransient<IEmailService, SendGridEmailService>();
+builder.Services.AddScoped<IMediaService, AzureBlobStorageService>();
+builder.Services.AddScoped<InverbanHN.VendorAPI.Services.IMediaService, InverbanHN.VendorAPI.Services.AzureBlobStorageService>();
+
+// CORS Policy AllowSiteGround
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSiteGround", policy =>
+    {
+        var configuredOrigins = builder.Configuration["Cors:AllowedOrigins"]?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var defaultOrigins = new[]
+        {
+            "https://www.inverbanhn.com",
+            "https://inverbanhn.com",
+            "https://vendor.inverbanhn.com",
+            "https://admin.inverbanhn.com",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:4200",
+            "http://localhost:8080",
+            "http://localhost:3001"
+        };
+
+        var origins = (configuredOrigins != null && configuredOrigins.Length > 0)
+            ? configuredOrigins.Concat(defaultOrigins).Distinct().ToArray()
+            : defaultOrigins;
+
+        policy.WithOrigins(origins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+
+    options.AddPolicy("AllowWebApp", policy =>
+    {
+        policy.WithOrigins(
+            "https://www.inverbanhn.com",
+            "https://inverbanhn.com",
+            "https://vendor.inverbanhn.com",
+            "https://admin.inverbanhn.com",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:4200",
+            "http://localhost:8080",
+            "http://localhost:3001"
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
+    });
+});
+
+// Rate Limiting (Prevención de abusos y ataques de fuerza bruta)
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("AuthRateLimit", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown_ip",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "InverbanHN VendorAPI", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingrese el token JWT Bearer. Ejemplo: Bearer {token}"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+var app = builder.Build();
+
+// Manejo Global de Excepciones y Logging
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "VendorAPI v1"));
+
+// Ubica esto strictly antes de app.UseAuthorization();
+app.UseCors("AllowSiteGround");
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();

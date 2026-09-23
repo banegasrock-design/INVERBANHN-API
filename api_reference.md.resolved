@@ -1,0 +1,564 @@
+# API Reference — INVERBANHN Marketplace Logístico
+
+**Base URL**: `https://tu-api.azurewebsites.net`  
+**Swagger UI**: `/swagger`  
+**SignalR Hub**: `/hubs/notifications`  
+**Autenticación**: `X-Api-Key: {valor}` (header) o Bearer JWT  
+**Moneda**: Todos los campos monetarios en **Lempiras (LPS)** con 2 decimales  
+**RTN**: String de 14 dígitos numéricos (formato SAR Honduras)
+
+---
+
+## 🏪 Administración de Tiendas
+`/api/admin/stores`
+
+### `POST /api/admin/stores`
+Crea una tienda nueva con datos legales, configuración operativa y configuración SAR.
+
+**Body**
+```json
+{
+  "storeName": "Ferretería El Constructor SPS",
+  "RTN": "08019000123456",
+  "address": "Col. Los Andes, 3ra Calle, San Pedro Sula, Cortés",
+  "inventoryMode": "Ecommerce",
+  "billingType": "Autoimpresor",
+  "CAI": "A1B2C3-D4E5F6-G7H8I9-J0K1L2-M3N4O5-P6",
+  "rangeStart": 1,
+  "rangeEnd": 500,
+  "caiExpiryDate": "2025-12-31"
+}
+```
+
+**Validaciones FluentValidation**
+| Campo | Regla |
+|---|---|
+| `RTN` | Exactamente 14 dígitos (`^\d{14}$`) |
+| `inventoryMode` | Solo `"Tienda"` o `"Ecommerce"` |
+| `billingType` | Solo `"Autoimpresor"` o `"Managed"` |
+| `CAI` | Solo si `Autoimpresor`. Formato `XXXXXX-XXXXXX-XXXXXX-XXXXXX-XXXXXX-XX` |
+| `rangeEnd` | Debe ser mayor que `rangeStart` |
+| `caiExpiryDate` | No puede estar vencida |
+
+**Respuesta `201 Created`**
+```json
+{
+  "message": "Tienda creada exitosamente.",
+  "storeId": 42,
+  "storeName": "Ferretería El Constructor SPS",
+  "inventoryMode": "Ecommerce",
+  "billingType": "Autoimpresor",
+  "sarConfigured": true
+}
+```
+
+> [!NOTE]
+> Usa una transacción Dapper. Si el INSERT a `[Logistics].[Store_SAR_Settings]` falla, el INSERT a `[Core].[Stores]` hace ROLLBACK automáticamente.
+
+---
+
+### `GET /api/admin/stores/{storeId}`
+Retorna los datos de una tienda. Si es Autoimpresor, incluye la configuración SAR activa.
+
+**Respuesta `200 OK`**
+```json
+{
+  "store": { "Store_ID": 42, "Store_Name": "...", "Billing_Type": "Autoimpresor" },
+  "sarConfiguration": { "CAI": "A1B2C3-...", "Range_Start": 1, "Range_End": 500 }
+}
+```
+
+---
+
+## 🚚 Carriers (Admin)
+`/api/admin/carriers`
+
+### `GET /api/admin/carriers`
+Lista todos los carriers activos ordenados alfabéticamente.
+
+---
+
+### `POST /api/admin/carriers`
+Crea un nuevo proveedor logístico.
+
+**Body**
+```json
+{
+  "carrierName": "Cargo Expreso",
+  "apiIntegrationKey": "sk_live_abc123",
+  "offersCOD": true,
+  "codFeePercentage": 3.50
+}
+```
+
+> [!IMPORTANT]
+> Si `offersCOD = true`, `codFeePercentage` es **obligatorio** (entre 0.01 y 100).
+
+---
+
+### `GET /api/admin/carriers/{carrierId}/rates`
+Lista las tarifas de envío de un carrier por ruta.
+
+---
+
+### `POST /api/admin/carriers/rates`
+Crea una tarifa individual por ruta ciudad origen → destino.
+
+**Body**
+```json
+{
+  "carrierId": 1,
+  "originCity": "San Pedro Sula",
+  "destinationCity": "Tegucigalpa",
+  "costToEcommerce": 85.00,
+  "priceToCustomer": 120.00
+}
+```
+
+**Validaciones**
+| Regla | Detalle |
+|---|---|
+| Montos LPS | Máximo 2 decimales de precisión |
+| Negocio | `priceToCustomer >= costToEcommerce` (no se puede operar a pérdida) |
+
+---
+
+### `POST /api/admin/carriers/rates/bulk`
+Carga masiva transaccional de tarifas. Si un registro falla, ninguno se guarda.
+
+**Body**: Array de `CreateShippingRateRequest`.
+
+---
+
+### `GET /api/admin/carriers/{carrierId}/settlement`
+Reporte de liquidación: cuánto se le debe transferir a una paquetera por envíos completados.
+
+---
+
+## 📊 Analítica (Admin)
+`/api/admin/analytics`
+
+### `GET /api/admin/analytics/gift-cards/liability`
+Pasivo financiero actual por Gift Cards pendientes de canje.
+
+**Fuente**: `[Marketing].[v_Auditoria_GiftCards_Pendientes]`
+
+**Respuesta `200 OK`**
+```json
+{
+  "totalPendingCards": 348,
+  "totalLiabilityLps": 250000.50
+}
+```
+
+---
+
+### `GET /api/admin/analytics/billing/pending-upload`
+Facturas de tiendas informales pendientes de subir al ecommerce.
+
+**Fuente**: `[Sales].[v_Facturas_Pendientes_Carga]`
+
+**Respuesta `200 OK`**
+```json
+{
+  "pendingCount": 23,
+  "totalAmountLps": 87500.00
+}
+```
+
+---
+
+### `GET /api/admin/analytics/notifications/marketing-reach`
+Estadísticas de opt-out del canal de Marketing para medir alcance de campañas.
+
+**Respuesta `200 OK`**
+```json
+{
+  "totalUsers": 5200,
+  "optOutCount": 780,
+  "reachCount": 4420,
+  "reachPercentage": 85.0
+}
+```
+
+> [!NOTE]
+> Si las vistas de auditoría no han sido desplegadas en la BD, el endpoint devuelve `400` con mensaje descriptivo (no 500). Diseñado para operar mientras el equipo de DBA realiza el despliegue.
+
+---
+
+## 💳 Wallet & Gift Cards
+`/api/wallet`
+
+### `POST /api/wallet/{customerId}/redeem`
+Canjea una Gift Card. Incluye rate limiting por IP.
+
+**Body**
+```json
+{
+  "code": "GC-2024-ABCD"
+}
+```
+
+**Validaciones**
+| Campo | Regla |
+|---|---|
+| `code` | 8–20 caracteres, solo alfanumérico y guiones |
+
+**Comportamiento de Rate Limiting**
+- Si el SP `[Marketing].[usp_Canjear_Gift_Card_Seguro]` devuelve "Demasiados intentos fallidos", la IP queda bloqueada **15 minutos** vía `IMemoryCache`.
+- Responde `429 Too Many Requests` con los minutos restantes.
+
+**Respuesta `200 OK`**
+```json
+{
+  "message": "Gift Card canjeada exitosamente.",
+  "nuevoSaldo": 850.00
+}
+```
+
+---
+
+### `POST /api/wallet/{customerId}/mixed-payment`
+Procesa un pago combinado Wallet + pasarela de pagos.
+
+**Body**
+```json
+{
+  "totalOrder": 1250.50,
+  "useWallet": true,
+  "orderId": "ORD-2024-0001"
+}
+```
+
+**Validaciones**
+| Campo | Regla |
+|---|---|
+| `totalOrder` | > 0, máximo 2 decimales (LPS) |
+| `orderId` | Obligatorio |
+
+**Respuesta `200 OK`**
+```json
+{
+  "totalOrder": 1250.50,
+  "walletAmountUsed": 500.00,
+  "diferenciaPendiente": 750.50
+}
+```
+
+---
+
+## 📄 Reportes
+`/api/reports`
+
+### `GET /api/reports/bank-exports`
+Exporta el archivo de pagos masivos para Banca en Línea (ADMIN).
+
+**Fuente**: `[Sales].[v_Export_Banca_En_Linea]`
+
+**Respuesta `200 OK`** — Array optimizado para TanStack Table
+```json
+[
+  {
+    "banco": "BAC Honduras",
+    "cuenta_Destino": "200-01-012-123456-7",
+    "tipo_Cuenta": "Ahorro",
+    "beneficiario": "Juan Carlos Pérez López",
+    "monto_A_Transferir": 15750.00,
+    "referencia_Interna": "LIQ-2024-0542",
+    "rtn_Vendedor": "08019000123456"
+  }
+]
+```
+
+---
+
+## 🧾 Facturación SAR
+`/api/tax`
+
+### `POST /api/tax/process/{subOrderId}`
+Procesa la facturación y retenciones ISR de una orden pagada.
+
+**Comportamiento transaccional**
+1. Ejecuta `[Sales].[usp_Procesar_Facturacion_Orden]`
+2. Si la tienda tiene `HasIsrWithholding = true`, ejecuta `[Sales].[usp_Generar_Retencion_Automatica]`
+3. Ambas operaciones corren dentro de un `BeginTransaction()` — si una falla, ninguna se graba.
+
+**Errores específicos**
+| Error SQL | Respuesta |
+|---|---|
+| Número 50060 | `400` "Falta configurar rangos CAI" |
+
+**Respuesta `200 OK`**
+```json
+{ "message": "Facturación y retenciones procesadas exitosamente." }
+```
+
+---
+
+## 🏭 Despacho Logístico
+`/api/dispatch`
+
+### `POST /api/dispatch/process/{subOrderId}`
+Motor de ruteo inteligente. Asigna la orden según el `Inventory_Mode` de la tienda.
+
+**Lógica de ruteo**
+```
+Inventory_Mode == "Ecommerce"
+  → Status = "AsignadaBodega"
+  → SignalR: grupo "Warehouse_SPS" evento "NewOrderAssigned"
+
+Inventory_Mode == "Tienda"
+  → Status = "PendientePreparacion"
+  → SignalR: grupo "Store_{storeId}" evento "PrepareOrder"
+```
+
+**Respuesta `200 OK`**
+```json
+{ "message": "Orden 123 asignada a bodega central SPS." }
+```
+
+---
+
+## 🚛 Paqueteras (Integración)
+`/api/carrier`
+
+### `POST /api/carrier/quote`
+Cotiza el costo de envío con un carrier específico.
+
+**Body**
+```json
+{
+  "originCity": "San Pedro Sula",
+  "destinationCity": "Tegucigalpa",
+  "carrierId": 1
+}
+```
+
+**Respuesta `200 OK`**
+```json
+{ "carrierId": 1, "cost": 120.00 }
+```
+
+---
+
+### `POST /api/carrier/generate-guide/{subOrderId}`
+Genera la guía de envío física con el carrier asignado a la orden.
+
+**Respuesta `200 OK`**
+```json
+{ "message": "Guía generada exitosamente.", "guideDetails": { ... } }
+```
+
+---
+
+### `POST /api/carrier/webhook`
+Endpoint receptor de notificaciones de estado de las paqueteras.
+
+**Auth**: `X-Api-Key` requerido.
+
+**Body**
+```json
+{
+  "trackingNumber": "CEX-2024-001234",
+  "newStatus": "En camino"
+}
+```
+
+**Statuses válidos**: `"Entregado"`, `"Recibido en Bodega"`, `"En camino"`
+
+> [!NOTE]
+> Los estados `"Recibido en Bodega"` y `"En camino"` disparan una notificación in-app al cliente vía `INotificationService`.
+
+---
+
+## 📦 Productos
+`/api/products`
+
+### `GET /api/products/my` 🔒
+Lista todos los productos activos de la tienda del vendedor autenticado.  
+**Store_ID se inyecta automáticamente desde el JWT** — el vendedor nunca ve productos de otras tiendas.
+
+**Fuente**: `[Catalog].[Products]`
+
+---
+
+### `POST /api/products` 🔒
+Crea un nuevo producto. El `Store_ID` es asignado desde el JWT, nunca desde el body.
+
+**Body**
+```json
+{
+  "sku": "FERR-TALADRO-001",
+  "name": "Taladro Percutor 850W",
+  "description": "Ideal para concreto y madera.",
+  "categoryId": 12,
+  "brand": "Dewalt",
+  "weightKg": 2.50,
+  "widthCm": 25.00,
+  "heightCm": 30.00,
+  "lengthCm": 40.00
+}
+```
+
+**Validaciones FluentValidation**
+| Campo | Regla | Razón |
+|---|---|---|
+| `weightKg` | **Obligatorio**, > 0, ≤ 500 kg, 3 decimales | Motor de cotización de paqueteras |
+| `widthCm` | **Obligatorio**, > 0, ≤ 300 cm, 2 decimales | Motor de cotización de paqueteras |
+| `heightCm` | **Obligatorio**, > 0, ≤ 300 cm, 2 decimales | Motor de cotización de paqueteras |
+| `lengthCm` | **Obligatorio**, > 0, ≤ 300 cm, 2 decimales | Motor de cotización de paqueteras |
+| `sku` | Único por tienda, alfanumérico | Error SQL 2627 capturado |
+
+---
+
+### `PUT /api/products/{productId}` 🔒
+Actualiza un producto. Verifica ownership antes de modificar.
+
+---
+
+### `DELETE /api/products/{productId}` 🔒
+**Soft delete**: cambia `Status_Name = 'Inactivo'`. No elimina historial de ventas.
+
+---
+
+### `GET /api/products/categories`
+Catálogo de categorías disponibles (endpoint público, sin autenticación).
+
+**Fuente**: `[Logistics].[Categories]`
+
+---
+
+## 🖼️ Imágenes de Producto
+`/api/products/{productId}/images` 🔒
+
+### `GET /api/products/{productId}/images`
+Galería de imágenes del producto. La imagen principal (`Is_Main=true`) aparece primero.
+
+---
+
+### `POST /api/products/{productId}/images`
+Registra una imagen ya subida al CDN/Azure Blob.
+
+**Body**
+```json
+{
+  "imageUrl": "https://cdn.inverbanhn.com/products/taladro-001.webp",
+  "thumbnailUrl": "https://cdn.inverbanhn.com/products/taladro-001-thumb.webp",
+  "mediumUrl": "https://cdn.inverbanhn.com/products/taladro-001-md.webp",
+  "altText": "Taladro percutor 850W vista frontal",
+  "isMain": true,
+  "displayOrder": 0,
+  "mimeType": "image/webp",
+  "imageSizeBytes": 245760
+}
+```
+
+**Validaciones**
+| Campo | Regla |
+|---|---|
+| `imageUrl` | URL válida (`https://...`), máx. 2048 chars |
+| `mimeType` | `image/jpeg`, `image/png`, `image/webp`, `image/gif` |
+| `imageSizeBytes` | Máximo **5 MB** (5,242,880 bytes) |
+
+> [!IMPORTANT]
+> Si `isMain = true`, la imagen anterior que era portada pierde ese estado automáticamente dentro de una transacción Dapper.
+
+---
+
+### `PATCH /api/products/{productId}/images/{imageId}/set-main`
+Cambia la imagen portada del producto. Transacción atómica garantizada.
+
+---
+
+### `PATCH /api/products/{productId}/images/reorder`
+Reordena la galería enviando los IDs en el nuevo orden deseado.
+
+**Body**
+```json
+[3, 1, 5, 2]
+```
+
+---
+
+### `DELETE /api/products/{productId}/images/{imageId}`
+Elimina una imagen. **Rechazado si es la única imagen del producto.**
+
+---
+
+## 🎨 Variantes de Producto
+`/api/products/{productId}/variants` 🔒
+
+### `GET /api/products/{productId}/variants`
+Lista todas las variantes (tallas, colores, capacidades, etc.).
+
+---
+
+### `POST /api/products/{productId}/variants`
+Crea una nueva variante.
+
+**Body**
+```json
+{
+  "sku": "FERR-TALADRO-001-850W-AZUL",
+  "variantName": "Taladro 850W — Color Azul",
+  "variantDescription": "Versión azul con maletín incluido.",
+  "priceAmount": 1850.00,
+  "weightKg": 2.80,
+  "isDigitalDownload": false
+}
+```
+
+**Validaciones**
+| Campo | Regla |
+|---|---|
+| `priceAmount` | > 0 LPS, máximo 2 decimales |
+| `weightKg` | Opcional. Si se define, **sobreescribe el peso del producto padre** en el cálculo de flete |
+
+---
+
+### `PUT /api/products/{productId}/variants/{variantId}`
+Actualiza una variante existente.
+
+---
+
+### `DELETE /api/products/{productId}/variants/{variantId}`
+Elimina una variante del producto.
+
+---
+
+## 🔔 SignalR — Grupos de Notificación en Tiempo Real
+`/hubs/notifications`
+
+| Grupo | Método de join | Eventos recibidos |
+|---|---|---|
+| `Warehouse_SPS` | `JoinWarehouseGroup("SPS")` | `NewOrderAssigned` |
+| `Store_{storeId}` | `JoinStoreGroup(storeId)` | `PrepareOrder` |
+| `Customer_{userId}` | `JoinCustomerGroup(userId)` | `OrderStatusChanged` |
+
+**Snippet React**
+```javascript
+const connection = new HubConnectionBuilder()
+  .withUrl("/hubs/notifications", { accessTokenFactory: () => token })
+  .build();
+
+// Panel de bodega
+await connection.invoke("JoinWarehouseGroup", "SPS");
+connection.on("NewOrderAssigned", (order) => { /* actualizar lista */ });
+
+// Panel de tienda
+await connection.invoke("JoinStoreGroup", storeId);
+connection.on("PrepareOrder", (order) => { /* mostrar alerta */ });
+```
+
+---
+
+## 🔐 Seguridad
+
+| Mecanismo | Aplicación |
+|---|---|
+| JWT Bearer (Azure AD) | Controladores de negocio |
+| `X-Api-Key` | Webhooks de paqueteras |
+| Rate Limiting (IMemoryCache) | Gift Cards: bloqueo 15 min por IP tras intentos fallidos |
+| FluentValidation | RTN (14 dígitos), CAI (formato SAR), LPS (2 decimales), SKU (alfanumérico) |
+| Ownership check | Productos e imágenes: el vendedor solo accede a sus propios recursos |
+| Transacciones Dapper | TaxService (Factura+Retención), StoreService (Store+SAR), Imágenes (portada), Bulk rates |

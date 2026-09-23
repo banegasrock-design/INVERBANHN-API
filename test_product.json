@@ -1,0 +1,11 @@
+{
+  "sku": "TEST-SKU-001",
+  "name": "Producto de Prueba Antigravity",
+  "description": "Este es un producto creado automáticamente para pruebas de integración.",
+  "categoryId": 1,
+  "brand": "Antigravity",
+  "weightKg": 1.5,
+  "widthCm": 10.0,
+  "heightCm": 5.0,
+  "lengthCm": 20.0
+}
