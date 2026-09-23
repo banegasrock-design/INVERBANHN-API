@@ -63,8 +63,10 @@ builder.Services.AddCors(options =>
             "https://inverbanhn.com",
             "https://vendor.inverbanhn.com",
             "https://admin.inverbanhn.com",
-            "http://localhost:3000",
+            "http://localhost:5180",
             "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:3000",
             "http://localhost:4200",
             "http://localhost:8080",
             "http://localhost:3001"
@@ -87,8 +89,10 @@ builder.Services.AddCors(options =>
             "https://inverbanhn.com",
             "https://vendor.inverbanhn.com",
             "https://admin.inverbanhn.com",
-            "http://localhost:3000",
+            "http://localhost:5180",
             "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:3000",
             "http://localhost:4200",
             "http://localhost:8080",
             "http://localhost:3001"
