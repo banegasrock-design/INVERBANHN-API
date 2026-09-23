@@ -1,0 +1,74 @@
+name: Despliegue Continuo a Azure App Services (InverbanHN APIs)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy-customer-api:
+    name: Desplegar CustomerAPI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar Código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Compilar y Empaquetar CustomerAPI
+        run: dotnet publish InverbanHN.CustomerAPI/InverbanHN.CustomerAPI.csproj -c Release -o ./publish-customer
+
+      - name: Desplegar CustomerAPI en Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_CUSTOMER_API_APP_NAME || 'app-inverban-customer-api' }}
+          publish-profile: ${{ secrets.AZURE_CUSTOMER_API_PUBLISH_PROFILE }}
+          package: ./publish-customer
+
+  build-and-deploy-vendor-api:
+    name: Desplegar VendorAPI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar Código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Compilar y Empaquetar VendorAPI
+        run: dotnet publish InverbanHN.VendorAPI/InverbanHN.VendorAPI.csproj -c Release -o ./publish-vendor
+
+      - name: Desplegar VendorAPI en Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_VENDOR_API_APP_NAME || 'app-inverban-vendor-api' }}
+          publish-profile: ${{ secrets.AZURE_VENDOR_API_PUBLISH_PROFILE }}
+          package: ./publish-vendor
+
+  build-and-deploy-admin-api:
+    name: Desplegar AdminAPI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar Código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Compilar y Empaquetar AdminAPI
+        run: dotnet publish InverbanHN.AdminAPI/InverbanHN.AdminAPI.csproj -c Release -o ./publish-admin
+
+      - name: Desplegar AdminAPI en Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_ADMIN_API_APP_NAME || 'app-inverban-admin-api' }}
+          publish-profile: ${{ secrets.AZURE_ADMIN_API_PUBLISH_PROFILE }}
+          package: ./publish-admin
