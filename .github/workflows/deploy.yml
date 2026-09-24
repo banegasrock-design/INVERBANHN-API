@@ -22,11 +22,15 @@ jobs:
       - name: Compilar y Empaquetar CustomerAPI
         run: dotnet publish InverbanHN.CustomerAPI/InverbanHN.CustomerAPI.csproj -c Release -o ./publish-customer
 
+      - name: Iniciar Sesión en Azure (Entra ID / Active Directory)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Desplegar CustomerAPI en Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_CUSTOMER_API_APP_NAME || 'app-inverban-customer-api' }}
-          publish-profile: ${{ secrets.AZURE_CUSTOMER_API_PUBLISH_PROFILE }}
           package: ./publish-customer
 
   build-and-deploy-vendor-api:
@@ -44,11 +48,15 @@ jobs:
       - name: Compilar y Empaquetar VendorAPI
         run: dotnet publish InverbanHN.VendorAPI/InverbanHN.VendorAPI.csproj -c Release -o ./publish-vendor
 
+      - name: Iniciar Sesión en Azure (Entra ID / Active Directory)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Desplegar VendorAPI en Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_VENDOR_API_APP_NAME || 'app-inverban-vendor-api' }}
-          publish-profile: ${{ secrets.AZURE_VENDOR_API_PUBLISH_PROFILE }}
           package: ./publish-vendor
 
   build-and-deploy-admin-api:
@@ -66,9 +74,13 @@ jobs:
       - name: Compilar y Empaquetar AdminAPI
         run: dotnet publish InverbanHN.AdminAPI/InverbanHN.AdminAPI.csproj -c Release -o ./publish-admin
 
+      - name: Iniciar Sesión en Azure (Entra ID / Active Directory)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Desplegar AdminAPI en Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_ADMIN_API_APP_NAME || 'app-inverban-admin-api' }}
-          publish-profile: ${{ secrets.AZURE_ADMIN_API_PUBLISH_PROFILE }}
           package: ./publish-admin

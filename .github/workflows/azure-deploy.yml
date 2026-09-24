@@ -1,9 +1,6 @@
 name: Despliegue Automatizado a Azure App Service (InverbanHN)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -23,11 +20,15 @@ jobs:
         run: |
           dotnet publish InverbanHN.CustomerAPI/InverbanHN.CustomerAPI.csproj -c Release -o ./publish-customer
 
+      - name: Iniciar Sesión en Azure (Entra ID / Active Directory)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Desplegar en Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_CUSTOMER_API_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_CUSTOMER_API_PUBLISH_PROFILE }}
           package: ./publish-customer
 
   build-and-deploy-vendor-api:
@@ -46,11 +47,15 @@ jobs:
         run: |
           dotnet publish InverbanHN.VendorAPI/InverbanHN.VendorAPI.csproj -c Release -o ./publish-vendor
 
+      - name: Iniciar Sesión en Azure (Entra ID / Active Directory)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Desplegar en Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_VENDOR_API_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_VENDOR_API_PUBLISH_PROFILE }}
           package: ./publish-vendor
 
   build-and-deploy-admin-api:
@@ -69,9 +74,13 @@ jobs:
         run: |
           dotnet publish InverbanHN.AdminAPI/InverbanHN.AdminAPI.csproj -c Release -o ./publish-admin
 
+      - name: Iniciar Sesión en Azure (Entra ID / Active Directory)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Desplegar en Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_ADMIN_API_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_ADMIN_API_PUBLISH_PROFILE }}
           package: ./publish-admin
