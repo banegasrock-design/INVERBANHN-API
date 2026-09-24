@@ -105,7 +105,7 @@ namespace InverbanHN.CustomerAPI.Controllers
                         1 AS SubOrdersCount,
                         COALESCE(U.Address, 'Dirección de envío principal') AS ShippingAddress
                     FROM [dbo].[SubOrders] SO
-                    LEFT JOIN [Core].[Users] U ON U.User_ID = SO.CustomerId OR U.Id = SO.CustomerId
+                    LEFT JOIN [Core].[Users] U ON U.User_ID = SO.CustomerId
                     WHERE SO.Id = @OrderId AND SO.CustomerId = @CustomerId";
 
                 var orderDetail = await connection.QuerySingleOrDefaultAsync<CustomerOrderDetailDto>(headerSql, new

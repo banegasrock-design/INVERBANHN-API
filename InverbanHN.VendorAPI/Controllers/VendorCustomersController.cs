@@ -56,9 +56,9 @@ namespace InverbanHN.VendorAPI.Controllers
                 var itemsSql = @"
                     SELECT 
                         C.UserId,
-                        COALESCE(U.Full_Name, U.Nombre, C.GuestName, 'Cliente ' + CAST(C.UserId AS NVARCHAR)) AS FullName,
+                        COALESCE(U.Full_Name, C.GuestName, 'Cliente ' + CAST(C.UserId AS NVARCHAR)) AS FullName,
                         COALESCE(U.Email, C.GuestEmail, 'sin_correo@inverban.hn') AS Email,
-                        COALESCE(U.Phone, U.Telefono, U.Teléfono) AS Phone,
+                        U.Phone AS Phone,
                         C.TotalOrdersInStore,
                         C.TotalSpentInStore,
                         C.LastOrderDate
@@ -74,7 +74,7 @@ namespace InverbanHN.VendorAPI.Controllers
                         WHERE StoreId = @StoreId AND COALESCE(CustomerId, Customer_User_ID, User_ID) IS NOT NULL
                         GROUP BY COALESCE(CustomerId, Customer_User_ID, User_ID)
                     ) C
-                    LEFT JOIN [Core].[Users] U ON U.User_ID = C.UserId OR U.Id = C.UserId
+                    LEFT JOIN [Core].[Users] U ON U.User_ID = C.UserId
                     WHERE (@Search IS NULL 
                         OR U.Full_Name LIKE '%' + @Search + '%' 
                         OR U.Email LIKE '%' + @Search + '%'
@@ -148,9 +148,9 @@ namespace InverbanHN.VendorAPI.Controllers
                 var sql = @"
                     SELECT 
                         @UserId AS UserId,
-                        COALESCE(U.Full_Name, U.Nombre, M.GuestName, 'Cliente ' + CAST(@UserId AS NVARCHAR)) AS FullName,
+                        COALESCE(U.Full_Name, M.GuestName, 'Cliente ' + CAST(@UserId AS NVARCHAR)) AS FullName,
                         COALESCE(U.Email, M.GuestEmail, 'sin_correo@inverban.hn') AS Email,
-                        COALESCE(U.Phone, U.Telefono, U.Teléfono) AS Phone,
+                        U.Phone AS Phone,
                         U.Created_At AS MemberSince,
                         @StoreId AS StoreId,
                         M.TotalOrdersInStore,
@@ -169,7 +169,7 @@ namespace InverbanHN.VendorAPI.Controllers
                         WHERE StoreId = @StoreId 
                           AND COALESCE(CustomerId, Customer_User_ID, User_ID) = @UserId
                     ) M
-                    LEFT JOIN [Core].[Users] U ON U.User_ID = @UserId OR U.Id = @UserId";
+                    LEFT JOIN [Core].[Users] U ON U.User_ID = @UserId";
 
                 var customerDetail = await connection.QuerySingleOrDefaultAsync<VendorCustomerDetailDto>(sql, new
                 {

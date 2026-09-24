@@ -78,9 +78,9 @@ namespace InverbanHN.CustomerAPI.Controllers
 
                 var insertSql = @"
                     INSERT INTO [Core].[Users]
-                        (Full_Name, Nombre, Email, Phone, Telefono, Password_Hash, Role, Is_Active, Created_At)
+                        (Full_Name, Email, Phone, Password_Hash, Role_Name, Is_Active, Created_At)
                     VALUES
-                        (@FullName, @FullName, @Email, @Phone, @Phone, @PasswordHash, 'Customer', 1, GETUTCDATE());
+                        (@FullName, @Email, @Phone, @PasswordHash, 'Customer', 1, GETUTCDATE());
                     SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
                 int newUserId = await connection.ExecuteScalarAsync<int>(insertSql, new
@@ -126,11 +126,11 @@ namespace InverbanHN.CustomerAPI.Controllers
 
                 var user = await connection.QuerySingleOrDefaultAsync<(int UserId, string FullName, string Email, string PasswordHash, string Role, bool IsActive)>(@"
                     SELECT 
-                        COALESCE(User_ID, Id) AS UserId,
-                        COALESCE(Full_Name, Nombre, 'Cliente InverbanHN') AS FullName,
+                        User_ID AS UserId,
+                        Full_Name AS FullName,
                         Email,
                         Password_Hash AS PasswordHash,
-                        ISNULL(Role, 'Customer') AS Role,
+                        ISNULL(Role_Name, 'Customer') AS Role,
                         ISNULL(Is_Active, 1) AS IsActive
                     FROM [Core].[Users]
                     WHERE LOWER(Email) = @Email",
@@ -147,10 +147,13 @@ namespace InverbanHN.CustomerAPI.Controllers
                 }
 
                 // Validar Hash
-                var hasher = new PasswordHasher<object>();
-                var verifyResult = hasher.VerifyHashedPassword(this, user.PasswordHash, request.Password);
-
-                bool isMatch = verifyResult == PasswordVerificationResult.Success || verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
+                bool isMatch = false;
+                if (!string.IsNullOrEmpty(user.PasswordHash))
+                {
+                    var hasher = new PasswordHasher<object>();
+                    var verifyResult = hasher.VerifyHashedPassword(this, user.PasswordHash, request.Password);
+                    isMatch = verifyResult == PasswordVerificationResult.Success || verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
+                }
 
                 if (!isMatch)
                 {
@@ -222,7 +225,7 @@ namespace InverbanHN.CustomerAPI.Controllers
                 using var connection = _dapperContext.CreateConnection();
 
                 var user = await connection.QuerySingleOrDefaultAsync<(int UserId, string FullName, string Email)>(@"
-                    SELECT COALESCE(User_ID, Id) AS UserId, COALESCE(Full_Name, Nombre, 'Cliente') AS FullName, Email 
+                    SELECT User_ID AS UserId, Full_Name AS FullName, Email 
                     FROM [Core].[Users] WHERE LOWER(Email) = @Email",
                     new { Email = cleanEmail });
 

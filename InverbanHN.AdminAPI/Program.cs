@@ -49,13 +49,13 @@ builder.Services.AddSingleton<DapperContext>();
 builder.Services.AddTransient<IEmailService, SendGridEmailService>();
 builder.Services.AddScoped<IMediaService, AzureBlobStorageService>();
 
-// CORS Policy AllowSiteGround
+// CORS Policy (Azure Static Web Apps & App Service Support)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSiteGround", policy =>
     {
         var configuredOrigins = builder.Configuration["Cors:AllowedOrigins"]?
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>();
 
         var defaultOrigins = new[]
         {
@@ -72,34 +72,36 @@ builder.Services.AddCors(options =>
             "http://localhost:3001"
         };
 
-        var origins = (configuredOrigins != null && configuredOrigins.Length > 0)
-            ? configuredOrigins.Concat(defaultOrigins).Distinct().ToArray()
-            : defaultOrigins;
+        var allowedOrigins = configuredOrigins.Concat(defaultOrigins).Distinct().ToArray();
 
-        policy.WithOrigins(origins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrWhiteSpace(origin)) return false;
+            try
+            {
+                var uri = new Uri(origin);
+                var host = uri.Host;
+                return host.EndsWith(".azurestaticapps.net", StringComparison.OrdinalIgnoreCase) ||
+                       host.EndsWith(".azurewebsites.net", StringComparison.OrdinalIgnoreCase) ||
+                       host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                       allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 
     options.AddPolicy("AllowWebApp", policy =>
     {
-        policy.WithOrigins(
-            "https://www.inverbanhn.com",
-            "https://inverbanhn.com",
-            "https://vendor.inverbanhn.com",
-            "https://admin.inverbanhn.com",
-            "http://localhost:5180",
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://localhost:3000",
-            "http://localhost:4200",
-            "http://localhost:8080",
-            "http://localhost:3001"
-        )
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials();
+        policy.SetIsOriginAllowed(origin => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 

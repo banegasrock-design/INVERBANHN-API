@@ -37,13 +37,13 @@ namespace InverbanHN.CustomerAPI.Controllers
 
                 var userSql = @"
                     SELECT 
-                        COALESCE(User_ID, Id) AS UserId,
-                        COALESCE(Full_Name, Nombre, 'Cliente InverbanHN') AS FullName,
+                        User_ID AS UserId,
+                        Full_Name AS FullName,
                         Email,
-                        COALESCE(Phone, Telefono, Teléfono) AS Phone,
+                        Phone AS Phone,
                         ISNULL(Created_At, GETUTCDATE()) AS MemberSince
                     FROM [Core].[Users]
-                    WHERE User_ID = @UserId OR Id = @UserId";
+                    WHERE User_ID = @UserId";
 
                 var profile = await connection.QuerySingleOrDefaultAsync<CustomerProfileResponseDto>(userSql, new { UserId = userId });
 

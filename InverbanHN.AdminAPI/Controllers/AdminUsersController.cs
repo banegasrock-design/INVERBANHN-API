@@ -48,11 +48,11 @@ namespace InverbanHN.AdminAPI.Controllers
 
                 var usersSql = @"
                     SELECT 
-                        COALESCE(User_ID, Id) AS UserId,
-                        COALESCE(Full_Name, Nombre, 'Usuario') AS FullName,
+                        User_ID AS UserId,
+                        Full_Name AS FullName,
                         Email,
-                        COALESCE(Phone, Telefono, Teléfono) AS Phone,
-                        ISNULL(Role, 'Customer') AS Role,
+                        Phone AS Phone,
+                        ISNULL(Role_Name, 'Customer') AS Role,
                         ISNULL(Is_Active, 1) AS IsActive,
                         ISNULL(Created_At, GETUTCDATE()) AS CreatedAt
                     FROM [Core].[Users]
@@ -103,7 +103,7 @@ namespace InverbanHN.AdminAPI.Controllers
 
                 // Verificar que el usuario existe
                 var userExists = await connection.ExecuteScalarAsync<bool>(@"
-                    SELECT CASE WHEN EXISTS (SELECT 1 FROM [Core].[Users] WHERE User_ID = @UserId OR Id = @UserId) THEN 1 ELSE 0 END",
+                    SELECT CASE WHEN EXISTS (SELECT 1 FROM [Core].[Users] WHERE User_ID = @UserId) THEN 1 ELSE 0 END",
                     new { UserId = userId });
 
                 if (!userExists)
@@ -144,7 +144,7 @@ namespace InverbanHN.AdminAPI.Controllers
                 });
 
                 // Actualizar también el rol principal en [Core].[Users] si aplica
-                await connection.ExecuteAsync("UPDATE [Core].[Users] SET Role = @Role WHERE User_ID = @UserId OR Id = @UserId",
+                await connection.ExecuteAsync("UPDATE [Core].[Users] SET Role_Name = @Role WHERE User_ID = @UserId",
                     new { Role = request.Role, UserId = userId });
 
                 await WriteAuditLogAsync(connection, "Core.User_Stores", "ASSIGN_STORE", $"Usuario {userId} asignado como {request.Role} de Tienda {request.StoreId}.");

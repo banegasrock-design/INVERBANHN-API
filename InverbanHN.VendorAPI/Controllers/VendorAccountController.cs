@@ -53,12 +53,12 @@ namespace InverbanHN.VendorAPI.Controllers
                 // Consulta el Password_Hash actual del usuario y su email
                 var userRecord = await connection.QuerySingleOrDefaultAsync<(int UserId, string PasswordHash, string? Email, string? FullName)>(@"
                     SELECT 
-                        COALESCE(User_ID, Id) AS UserId,
+                        User_ID AS UserId,
                         Password_Hash AS PasswordHash,
                         Email,
-                        COALESCE(Full_Name, Nombre, 'Administrador de Tienda') AS FullName
+                        Full_Name AS FullName
                     FROM [Core].[Users]
-                    WHERE User_ID = @UserId OR Id = @UserId",
+                    WHERE User_ID = @UserId",
                     new { UserId = userId });
 
                 if (string.IsNullOrEmpty(userRecord.PasswordHash))
@@ -97,7 +97,7 @@ namespace InverbanHN.VendorAPI.Controllers
                     UPDATE [Core].[Users]
                     SET Password_Hash = @NewPasswordHash,
                         Updated_At = GETUTCDATE()
-                    WHERE User_ID = @UserId OR Id = @UserId";
+                    WHERE User_ID = @UserId";
 
                 await connection.ExecuteAsync(updateSql, new
                 {

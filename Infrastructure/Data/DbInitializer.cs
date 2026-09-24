@@ -48,6 +48,8 @@ public static class DbInitializer
                 CREATE UNIQUE INDEX [IX_Users_Email] ON [Core].[Users] ([Email]);
             END");
 
+        SafeExecute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Core].[Users]') AND name = 'Phone') ALTER TABLE [Core].[Users] ADD [Phone] NVARCHAR(50) NULL");
+
         // 3. Asegurar Tabla Stores
         SafeExecute(@"
             IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[Core].[Stores]') AND type in (N'U'))

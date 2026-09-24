@@ -45,17 +45,17 @@ namespace InverbanHN.AdminAPI.Controllers
 
             try
             {
-                string cleanEmail = request.Email.Trim().ToLowerInvariant();
+                string cleanEmail = (request?.Email ?? string.Empty).Trim().ToLowerInvariant();
                 using var connection = _dapperContext.CreateConnection();
 
                 // 1. Buscar usuario en [Core].[Users]
                 var user = await connection.QuerySingleOrDefaultAsync<(int UserId, string FullName, string Email, string PasswordHash, string Role, bool IsActive)>(@"
                     SELECT 
-                        COALESCE(User_ID, Id) AS UserId,
-                        COALESCE(Full_Name, Nombre, 'Armando Banegas (SuperAdmin)') AS FullName,
+                        User_ID AS UserId,
+                        Full_Name AS FullName,
                         Email,
                         Password_Hash AS PasswordHash,
-                        ISNULL(Role, 'SuperAdmin') AS Role,
+                        ISNULL(Role_Name, 'SuperAdmin') AS Role,
                         ISNULL(Is_Active, 1) AS IsActive
                     FROM [Core].[Users]
                     WHERE LOWER(Email) = @Email",
@@ -63,21 +63,22 @@ namespace InverbanHN.AdminAPI.Controllers
 
                 bool isValidUser = false;
                 int userId = user.UserId;
-                string fullName = user.FullName;
-                string email = user.Email ?? cleanEmail;
+                string fullName = !string.IsNullOrEmpty(user.FullName) ? user.FullName : "Armando Banegas (SuperAdmin)";
+                string email = !string.IsNullOrEmpty(user.Email) ? user.Email : cleanEmail;
+                string providedPassword = request?.Password ?? string.Empty;
 
-                if (user.UserId > 0 && user.IsActive)
+                if (user.UserId > 0 && user.IsActive && !string.IsNullOrEmpty(user.PasswordHash) && !string.IsNullOrEmpty(providedPassword))
                 {
                     // Validar Hash con PasswordHasher
                     var hasher = new PasswordHasher<object>();
-                    var verifyResult = hasher.VerifyHashedPassword(this, user.PasswordHash, request.Password);
+                    var verifyResult = hasher.VerifyHashedPassword(this, user.PasswordHash, providedPassword);
                     isValidUser = (verifyResult == PasswordVerificationResult.Success || verifyResult == PasswordVerificationResult.SuccessRehashNeeded);
                 }
 
                 // Fallback seguro para credenciales maestras del desarrollador/SuperAdmin si la BD estuviera en inicialización
                 if (!isValidUser && (cleanEmail == "admin@inverbanhn.com" || cleanEmail == "armando.banegas@inverbanhn.com" || cleanEmail == "armando.banegas"))
                 {
-                    if (request.Password == "SuperSecretPassword123!" || request.Password == "Banegas2026!" || request.Password == "Admin123!")
+                    if (providedPassword == "SuperSecretPassword123!" || providedPassword == "Banegas2026!" || providedPassword == "Admin123!")
                     {
                         isValidUser = true;
                         userId = userId > 0 ? userId : 1;

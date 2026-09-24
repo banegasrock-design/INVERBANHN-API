@@ -114,9 +114,9 @@ namespace InverbanHN.VendorAPI.Controllers
                     SELECT 
                         SO.OrderNumber,
                         COALESCE(U.Email, SO.CustomerEmail) AS CustomerEmail,
-                        COALESCE(U.Full_Name, U.Nombre, SO.CustomerName, 'Estimado Cliente') AS CustomerName
+                        COALESCE(U.Full_Name, SO.CustomerName, 'Estimado Cliente') AS CustomerName
                     FROM [dbo].[SubOrders] SO
-                    LEFT JOIN [Core].[Users] U ON U.User_ID = SO.CustomerId OR U.Id = SO.CustomerId
+                    LEFT JOIN [Core].[Users] U ON U.User_ID = SO.CustomerId
                     WHERE SO.Id = @SubOrderId AND SO.StoreId = @StoreId",
                     new { SubOrderId = subOrderId, StoreId = storeId });
 

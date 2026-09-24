@@ -319,8 +319,8 @@ namespace InverbanHN.CustomerAPI.Controllers
 
                 // 4. Notificación por Correo Electrónico
                 var customerInfo = await connection.QuerySingleOrDefaultAsync<(string FullName, string Email)>(@"
-                    SELECT COALESCE(Full_Name, Nombre, 'Cliente InverbanHN') AS FullName, Email 
-                    FROM [Core].[Users] WHERE User_ID = @UserId OR Id = @UserId",
+                    SELECT Full_Name AS FullName, Email 
+                    FROM [Core].[Users] WHERE User_ID = @UserId",
                     new { UserId = userId });
 
                 string customerEmail = customerInfo.Email ?? "cliente@inverbanhn.com";
