@@ -47,6 +47,9 @@ namespace InverbanHN.AdminAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new ProblemDetails { Title = "Error al obtener clientes", Detail = ex.Message });
+            }
+        }
+
         /// <summary>
         /// POST /api/admin/customers
         /// </summary>
