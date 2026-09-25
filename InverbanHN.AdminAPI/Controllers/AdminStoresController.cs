@@ -44,20 +44,20 @@ namespace InverbanHN.AdminAPI.Controllers
                 var countSql = @"
                     SELECT COUNT(1) 
                     FROM [Core].[Stores]
-                    WHERE (@Search IS NULL OR Store_Name LIKE '%' + @Search + '%' OR RTN LIKE '%' + @Search + '%')";
+                    WHERE (@Search IS NULL OR Store_Name LIKE '%' + @Search + '%')";
 
                 var storesSql = @"
                     SELECT 
                         Store_ID AS StoreId,
                         Store_Name AS StoreName,
-                        RTN AS Rtn,
+                        COALESCE(Tax_ID_RTN, RTN, '08019999000000') AS Rtn,
                         ISNULL(Inventory_Mode, 'Tienda') AS InventoryMode,
                         ISNULL(Billing_Type, 'Managed') AS BillingType,
                         CAI,
                         ISNULL(Is_Active, 1) AS IsActive,
                         ISNULL(Created_At, GETUTCDATE()) AS CreatedAt
                     FROM [Core].[Stores]
-                    WHERE (@Search IS NULL OR Store_Name LIKE '%' + @Search + '%' OR RTN LIKE '%' + @Search + '%')
+                    WHERE (@Search IS NULL OR Store_Name LIKE '%' + @Search + '%')
                     ORDER BY Store_ID DESC
                     OFFSET @Offset ROWS
                     FETCH NEXT @PageSize ROWS ONLY";
@@ -107,15 +107,15 @@ namespace InverbanHN.AdminAPI.Controllers
 
                 var insertSql = @"
                     INSERT INTO [Core].[Stores]
-                        (Store_Name, RTN, Inventory_Mode, Billing_Type, Is_Active, Created_At)
+                        (Store_Name, Store_Slug, Tax_ID_RTN, Inventory_Mode, Billing_Type, Store_Type, Is_Active, Created_At)
                     VALUES
-                        (@StoreName, @Rtn, @InventoryMode, @BillingType, 1, GETUTCDATE());
+                        (@StoreName, LOWER(REPLACE(@StoreName, ' ', '-')), @Rtn, @InventoryMode, @BillingType, 'Marketplace', 1, GETUTCDATE());
                     SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
                 int newStoreId = await connection.ExecuteScalarAsync<int>(insertSql, new
                 {
                     StoreName = request.StoreName.Trim(),
-                    Rtn = request.Rtn?.Trim(),
+                    Rtn = request.Rtn?.Trim() ?? "08019999000000",
                     InventoryMode = request.InventoryMode,
                     BillingType = request.BillingType
                 });
