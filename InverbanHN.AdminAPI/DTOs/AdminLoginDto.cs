@@ -5,10 +5,32 @@ namespace InverbanHN.AdminAPI.DTOs
 {
     public class AdminLoginDto
     {
-        public string? Email { get; set; }
-        public string? email { get; set; }
-        public string? Password { get; set; }
-        public string? password { get; set; }
+        private string? _email;
+        private string? _password;
+
+        public string Email 
+        { 
+            get => _email ?? email ?? string.Empty; 
+            set => _email = value; 
+        }
+
+        public string? email 
+        { 
+            get => _email; 
+            set => _email = value; 
+        }
+
+        public string Password 
+        { 
+            get => _password ?? password ?? string.Empty; 
+            set => _password = value; 
+        }
+
+        public string? password 
+        { 
+            get => _password; 
+            set => _password = value; 
+        }
     }
 
     public class AdminLoginResponseDto
