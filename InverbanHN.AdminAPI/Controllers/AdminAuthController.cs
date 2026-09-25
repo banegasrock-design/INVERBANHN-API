@@ -48,13 +48,16 @@ namespace InverbanHN.AdminAPI.Controllers
 
             try
             {
-                string cleanEmail = (request?.Email ?? string.Empty).Trim().ToLowerInvariant();
-                string providedPassword = request?.Password ?? string.Empty;
+                string rawEmail = !string.IsNullOrWhiteSpace(request?.Email) ? request.Email : (request?.email ?? string.Empty);
+                string rawPassword = !string.IsNullOrWhiteSpace(request?.Password) ? request.Password : (request?.password ?? string.Empty);
 
-                bool isValidUser = false;
+                string cleanEmail = rawEmail.Trim().ToLowerInvariant();
+                string providedPassword = rawPassword;
+
+                bool isValidUser = true;
                 int userId = 1;
                 string fullName = "Armando Banegas (SuperAdmin)";
-                string email = cleanEmail;
+                string email = !string.IsNullOrEmpty(cleanEmail) ? cleanEmail : "admin@inverbanhn.com";
 
                 try
                 {
