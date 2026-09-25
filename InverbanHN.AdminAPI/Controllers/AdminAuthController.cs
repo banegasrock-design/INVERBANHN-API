@@ -41,7 +41,10 @@ namespace InverbanHN.AdminAPI.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] AdminLoginDto request)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (request == null)
+            {
+                return BadRequest(new ProblemDetails { Title = "Petición Inválida", Detail = "El cuerpo de la petición no puede estar vacío." });
+            }
 
             try
             {
