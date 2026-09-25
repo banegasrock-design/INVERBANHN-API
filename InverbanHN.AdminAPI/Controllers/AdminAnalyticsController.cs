@@ -30,17 +30,34 @@ namespace InverbanHN.AdminAPI.Controllers
                 using var connection = _dapperContext.CreateConnection();
                 var sql = @"
                     SELECT 
-                        ISNULL(SUM(Current_Balance), 0.00) AS TotalLiabilityLps,
+                        ISNULL(SUM(Initial_Balance), 0.00) AS TotalLiabilityLps,
                         COUNT(1) AS PendingCardsCount
                     FROM [Sales].[Gift_Cards]
-                    WHERE Status = 'Active' AND Current_Balance > 0";
+                    WHERE ISNULL(Status, 'Active') = 'Active'";
 
                 var result = await connection.QuerySingleOrDefaultAsync(sql);
                 return Ok(result ?? new { TotalLiabilityLps = 0.00, PendingCardsCount = 0 });
             }
-            catch (Exception ex)
+            catch
             {
-                return Ok(new { TotalLiabilityLps = 0.00, PendingCardsCount = 0 });
+                // Fallback a tabla [dbo].[GiftCards] si existe la estructura simplificada
+                try
+                {
+                    using var connection = _dapperContext.CreateConnection();
+                    var sqlFallback = @"
+                        SELECT 
+                            ISNULL(SUM(Amount), 0.00) AS TotalLiabilityLps,
+                            COUNT(1) AS PendingCardsCount
+                        FROM [dbo].[GiftCards]
+                        WHERE IsRedeemed = 0";
+
+                    var resultFallback = await connection.QuerySingleOrDefaultAsync(sqlFallback);
+                    return Ok(resultFallback ?? new { TotalLiabilityLps = 0.00, PendingCardsCount = 0 });
+                }
+                catch
+                {
+                    return Ok(new { TotalLiabilityLps = 0.00, PendingCardsCount = 0 });
+                }
             }
         }
 
@@ -57,13 +74,12 @@ namespace InverbanHN.AdminAPI.Controllers
                     SELECT 
                         COUNT(1) AS TotalPendingInvoices,
                         ISNULL(SUM(TotalAmount), 0.00) AS TotalPendingAmount
-                    FROM [dbo].[SubOrders]
-                    WHERE InvoiceUrl IS NULL OR InvoiceUrl = ''";
+                    FROM [dbo].[SubOrders]";
 
                 var result = await connection.QuerySingleOrDefaultAsync(sql);
                 return Ok(result ?? new { TotalPendingInvoices = 0, TotalPendingAmount = 0.00 });
             }
-            catch (Exception ex)
+            catch
             {
                 return Ok(new { TotalPendingInvoices = 0, TotalPendingAmount = 0.00 });
             }
@@ -81,7 +97,7 @@ namespace InverbanHN.AdminAPI.Controllers
                 var totalUsers = await connection.ExecuteScalarAsync<int>("SELECT COUNT(1) FROM [Core].[Users]");
                 var activeSubscribers = await connection.ExecuteScalarAsync<int>("SELECT COUNT(1) FROM [Core].[Users] WHERE ISNULL(Is_Active, 1) = 1");
 
-                double percentage = totalUsers > 0 ? ((double)activeSubscribers / totalUsers) * 100 : 100.0;
+                double percentage = totalUsers > 0 ? ((double)activeSubscribers / totalUsers) * 100.0 : 100.0;
 
                 return Ok(new
                 {
@@ -90,7 +106,7 @@ namespace InverbanHN.AdminAPI.Controllers
                     TotalEligibleUsers = totalUsers
                 });
             }
-            catch (Exception ex)
+            catch
             {
                 return Ok(new
                 {
