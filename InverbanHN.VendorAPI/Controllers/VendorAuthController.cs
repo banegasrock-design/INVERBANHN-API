@@ -5,11 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using InverbanHN.Shared.Data;
+using InverbanHN.VendorAPI.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace InverbanHN.VendorAPI.Controllers
 {
