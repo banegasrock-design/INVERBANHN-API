@@ -28,6 +28,8 @@ namespace InverbanHN.VendorAPI.Controllers
         /// Filtrado obligatorio por Store_ID del JWT.
         /// </summary>
         [HttpGet("items")]
+        [HttpGet("/api/products/my")]
+        [HttpGet("/api/products")]
         public async Task<IActionResult> GetCatalogItems(
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10,
@@ -111,6 +113,7 @@ namespace InverbanHN.VendorAPI.Controllers
         /// 4. Soporta tipos: Producto (Tangible), Servicio, Digital. Si es Servicio, stock y dimensiones quedan NULL.
         /// </summary>
         [HttpPost("items")]
+        [HttpPost("/api/products")]
         public async Task<IActionResult> CreateCatalogItem([FromBody] CreateUpdateCatalogItemRequestDto request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -198,6 +201,7 @@ namespace InverbanHN.VendorAPI.Controllers
         /// 2. Ejecuta sp_set_session_context 'UsuarioID' antes de actualizar.
         /// </summary>
         [HttpPut("items/{id}")]
+        [HttpPut("/api/products/{id}")]
         public async Task<IActionResult> UpdateCatalogItem(int id, [FromBody] CreateUpdateCatalogItemRequestDto request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -281,6 +285,7 @@ namespace InverbanHN.VendorAPI.Controllers
         /// 3. Retorna 204 No Content si tuvo éxito, o 404 si no existe/no pertenece a la tienda.
         /// </summary>
         [HttpDelete("items/{id}")]
+        [HttpDelete("/api/products/{id}")]
         public async Task<IActionResult> SoftDeleteCatalogItem(int id)
         {
             try
