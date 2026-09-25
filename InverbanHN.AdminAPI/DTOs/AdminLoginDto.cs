@@ -1,36 +1,18 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace InverbanHN.AdminAPI.DTOs
 {
     public class AdminLoginDto
     {
-        private string? _email;
-        private string? _password;
+        [Required(ErrorMessage = "El correo electrónico es requerido.")]
+        [JsonPropertyName("email")]
+        public string Email { get; set; } = string.Empty;
 
-        public string Email 
-        { 
-            get => _email ?? email ?? string.Empty; 
-            set => _email = value; 
-        }
-
-        public string? email 
-        { 
-            get => _email; 
-            set => _email = value; 
-        }
-
-        public string Password 
-        { 
-            get => _password ?? password ?? string.Empty; 
-            set => _password = value; 
-        }
-
-        public string? password 
-        { 
-            get => _password; 
-            set => _password = value; 
-        }
+        [Required(ErrorMessage = "La contraseña es requerida.")]
+        [JsonPropertyName("password")]
+        public string Password { get; set; } = string.Empty;
     }
 
     public class AdminLoginResponseDto
