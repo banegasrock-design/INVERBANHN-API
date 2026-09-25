@@ -5,8 +5,7 @@ namespace InverbanHN.AdminAPI.DTOs
 {
     public class AdminLoginDto
     {
-        [Required(ErrorMessage = "El correo electrónico es requerido.")]
-        [EmailAddress(ErrorMessage = "Ingrese un correo electrónico válido.")]
+        [Required(ErrorMessage = "El correo electrónico o usuario es requerido.")]
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La contraseña es requerida.")]
