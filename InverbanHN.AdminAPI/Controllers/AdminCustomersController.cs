@@ -47,6 +47,38 @@ namespace InverbanHN.AdminAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new ProblemDetails { Title = "Error al obtener clientes", Detail = ex.Message });
+        /// <summary>
+        /// POST /api/admin/customers
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+                return BadRequest(new { Message = "El correo electrónico y contraseña son requeridos." });
+
+            try
+            {
+                using var connection = _dapperContext.CreateConnection();
+                var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<object>();
+                var passwordHash = hasher.HashPassword(this, request.Password);
+
+                var sql = @"
+                    INSERT INTO [Core].[Users] (Full_Name, Email, Password_Hash, Role_Name, Is_Active, Created_At)
+                    VALUES (@FullName, @Email, @Hash, 'Customer', 1, GETUTCDATE());
+                    SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+                int userId = await connection.ExecuteScalarAsync<int>(sql, new
+                {
+                    FullName = request.FullName?.Trim() ?? "Cliente",
+                    Email = request.Email.Trim().ToLowerInvariant(),
+                    Hash = passwordHash
+                });
+
+                return Ok(new { Message = "Cliente registrado con éxito.", CustomerId = userId });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ProblemDetails { Title = "Error al crear cliente", Detail = ex.Message });
             }
         }
 
@@ -82,5 +114,12 @@ namespace InverbanHN.AdminAPI.Controllers
     public class ResetPasswordRequest
     {
         public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class CreateCustomerRequest
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 }
