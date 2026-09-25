@@ -20,7 +20,6 @@ namespace InverbanHN.AdminAPI.Controllers
     [ApiController]
     [Route("api/admin/auth")]
     [AllowAnonymous]
-    [EnableRateLimiting("AuthRateLimit")]
     public class AdminAuthController : AdminBaseController
     {
         private readonly DapperContext _dapperContext;
