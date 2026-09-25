@@ -160,51 +160,24 @@ builder.Services.AddSwaggerGen(options =>
 // ✅ CORS Policy configurations (Azure Static Web Apps & App Service Support)
 builder.Services.AddCors(options =>
 {
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
     options.AddPolicy("AllowSiteGround", policy =>
     {
-        var configuredOrigins = builder.Configuration["Cors:AllowedOrigins"]?
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>();
-
-        var defaultOrigins = new[]
-        {
-            "https://www.inverbanhn.com",
-            "https://inverbanhn.com",
-            "https://vendor.inverbanhn.com",
-            "https://admin.inverbanhn.com",
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://localhost:4200",
-            "http://localhost:8080",
-            "http://localhost:3001"
-        };
-
-        var allowedOrigins = configuredOrigins.Concat(defaultOrigins).Distinct().ToArray();
-
-        policy.SetIsOriginAllowed(origin =>
-        {
-            if (string.IsNullOrWhiteSpace(origin)) return false;
-            try
-            {
-                var uri = new Uri(origin);
-                var host = uri.Host;
-                return host.EndsWith(".azurestaticapps.net", StringComparison.OrdinalIgnoreCase) ||
-                       host.EndsWith(".azurewebsites.net", StringComparison.OrdinalIgnoreCase) ||
-                       host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-                       allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
-            }
-            catch
-            {
-                return false;
-            }
-        })
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials(); 
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); 
     });
 
     options.AddPolicy("AllowWebApp", policy =>
     {
-        policy.SetIsOriginAllowed(origin => true)
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials(); 
